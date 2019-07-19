@@ -119,6 +119,7 @@ dependencies {
     implementation("io.reactivex.rxjava2:rxandroid:2.1.0")
     implementation("com.f2prateek.rx.preferences2:rx-preferences:2.0.0")
     implementation("com.android.support:support-v4:26.1.0") {}
+    implementation("com.squareup.okhttp3:okhttp:4.0.1")
 
     // Testing-only dependencies
     testImplementation("net.wuerl.kotlin:assertj-core-kotlin:0.1.1")

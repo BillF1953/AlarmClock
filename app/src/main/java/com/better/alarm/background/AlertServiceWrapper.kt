@@ -76,6 +76,9 @@ class AlertServiceWrapper : Service() {
                                 scheduler = AndroidSchedulers.mainThread(),
                                 vibratePreference = container().rxPrefs().getBoolean("vibrate").asObservable()
                         ),
+                        RollosPlugin(
+                                logger = container().logger()
+                        ),
                         NotificationsPlugin(
                                 mContext = this,
                                 nm = container().notificationManager(),
