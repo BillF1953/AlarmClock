@@ -181,4 +181,5 @@
     <string name="dialog_say_thanks_premium_text_as_button"><a href="https://play.google.com/store/apps/details?id=com.premium.alarm">Go premium</a></string>
     <string name="dialog_say_thanks_donate_paypal"><a href="https://www.paypal.me/YuriyKulikov">PayPal</a></string>
     <string name="dialog_say_thanks_donate_yandex"><a href="https://money.yandex.ru/to/410019676183865">Yandex</a></string>
+    <string name="alert_notifications_high_prio_text">It seems that notification settings are not correct. This will prevent the proper work of the application. Please make sure that   Please click OK to jump to system settings and correct this.</string>
 </resources>
