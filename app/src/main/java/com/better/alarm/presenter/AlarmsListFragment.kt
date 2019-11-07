@@ -21,7 +21,8 @@ import com.melnykov.fab.FloatingActionButton
 import io.reactivex.Observable
 import io.reactivex.disposables.Disposable
 import io.reactivex.disposables.Disposables
-import java.util.*
+import java.util.ArrayList
+import java.util.Calendar
 
 /**
  * Shows a list of alarms. To react on user interaction, requires a strategy. An
@@ -117,7 +118,7 @@ class AlarmsListFragment : Fragment() {
             // Set the repeat text or leave it blank if it does not repeat.
             val daysOfWeekStr = alarm.daysOfWeek.toString(context, false)
 
-            row.daysOfWeek.text = daysOfWeekStr
+            row.daysOfWeek.text = if (alarm.skipping) "$daysOfWeekStr (skipping)" else daysOfWeekStr
 
             row.daysOfWeek.visibility = when {
                 daysOfWeekStr.isNotEmpty() -> View.VISIBLE
@@ -162,6 +163,18 @@ class AlarmsListFragment : Fragment() {
 
             R.id.edit_alarm -> {
                 uiStore.edit(alarm.id)
+                return true
+            }
+
+            R.id.skip_alarm -> {
+                alarms.getAlarm(alarmId = alarm.id)?.run {
+                    if (isSkipping) {
+                        // removes the skip
+                        edit().commit()
+                    } else {
+                        requestSkip()
+                    }
+                }
                 return true
             }
 

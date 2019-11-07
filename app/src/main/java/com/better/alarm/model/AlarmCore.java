@@ -178,6 +178,10 @@ public final class AlarmCore implements Alarm, Consumer<AlarmValue> {
                     return "DELETE";
                 case AlarmStateMachine.TIME_SET:
                     return "TIME_SET";
+                case AlarmStateMachine.INEXACT_FIRED:
+                    return "SKIP_FIRED";
+                case AlarmStateMachine.SKIP:
+                    return "SKIP";
             }
             return "" + what;
         }
@@ -197,6 +201,8 @@ public final class AlarmCore implements Alarm, Consumer<AlarmValue> {
         public static final int REFRESH = 9;
         public static final int DELETE = 10;
         public static final int TIME_SET = 11;
+        public static final int INEXACT_FIRED = 12;
+        public static final int SKIP = 13;
 
         public final DisabledState disabledState;
         public final DeletedState deletedState;
@@ -206,6 +212,7 @@ public final class AlarmCore implements Alarm, Consumer<AlarmValue> {
         public final EnabledState.SetState.PreAlarmSetState preAlarmSet;
         public final EnabledState.SetState.NormalSetState normalSet;
         public final EnabledState.SnoozedState snoozed;
+        public final EnabledState.SkippingSetState skipping;
         public final EnabledState.PreAlarmFiredState preAlarmFired;
         public final EnabledState.PreAlarmSnoozedState preAlarmSnoozed;
         public final EnabledState.FiredState fired;
@@ -220,6 +227,7 @@ public final class AlarmCore implements Alarm, Consumer<AlarmValue> {
             EnabledState.SetState set = enabledState.new SetState();
             normalSet = set.new NormalSetState();
             preAlarmSet = set.new PreAlarmSetState();
+            skipping = enabledState.new SkippingSetState();
 
             snoozed = enabledState.new SnoozedState();
             preAlarmFired = enabledState.new PreAlarmFiredState();
@@ -237,6 +245,7 @@ public final class AlarmCore implements Alarm, Consumer<AlarmValue> {
             addState(preAlarmSet, set);
             addState(normalSet, set);
             addState(snoozed, enabledState);
+            addState(skipping, enabledState);
             addState(preAlarmFired, enabledState);
             addState(fired, enabledState);
             addState(preAlarmSnoozed, enabledState);
@@ -446,15 +455,91 @@ public final class AlarmCore implements Alarm, Consumer<AlarmValue> {
                 }
 
                 @Override
+                public void enter() {
+                    updateListInStore();
+                }
+
+                @Override
+                public void resume() {
+                    Calendar calendar = calculateNextTime();
+                    calendar.add(Calendar.MINUTE, -120);
+                    if (calendar.after(calendars.now())) {
+                        mAlarmsScheduler.setInexactAlarm(getId(), calendar);
+                    } else {
+                        log.d("Alarm " + getId() + " is due in less than 2 hours - show notification");
+                        broadcastAlarmState(Intents.ALARM_SHOW_SKIP);
+                    }
+                }
+
+                @Override
+                protected void onSkipFired() {
+                    broadcastAlarmState(Intents.ALARM_SHOW_SKIP);
+                }
+
+                @Override
+                protected void onSkipped() {
+                    if (container.getDaysOfWeek().isRepeatSet()) {
+                        transitionTo(skipping);
+                    } else {
+                        transitionTo(rescheduleTransition);
+                    }
+                }
+
+                @Override
                 public void exit() {
+                    broadcastAlarmState(Intents.ALARM_REMOVE_SKIP);
                     if (!alarmWillBeRescheduled(getCurrentMessage())) {
                         removeAlarm();
                     }
+                    mAlarmsScheduler.removeInexactAlarm(getId());
                 }
 
                 @Override
                 protected void onTimeSet() {
                     transitionTo(enableTransition);
+                }
+            }
+
+            private class SkippingSetState extends AlarmState {
+                @Override
+                public void enter() {
+                    updateListInStore();
+                }
+
+                @Override
+                public void resume() {
+                    Calendar nextTime = calculateNextTime();
+                    if (nextTime.after(calendars.now())) {
+                        mAlarmsScheduler.setInexactAlarm(getId(), nextTime);
+
+                        Calendar nextAfterSkip = calculateNextTime();
+                        nextAfterSkip.add(Calendar.DAY_OF_YEAR, 1);
+                        int addDays = container.getDaysOfWeek().getNextAlarm(nextAfterSkip);
+                        if (addDays > 0) {
+                            nextAfterSkip.add(Calendar.DAY_OF_WEEK, addDays);
+                        }
+
+                        // this will never (hopefully) fire, but in order to display it everywhere...
+                        setAlarm(nextAfterSkip, CalendarType.NORMAL);
+                    } else {
+                        transitionTo(container.isEnabled() ? enableTransition : disabledState);
+                    }
+                }
+
+                @Override
+                protected void onFired() {
+                    // yeah should never happen
+                    transitionTo(fired);
+                }
+
+                @Override
+                protected void onSkipFired() {
+                    transitionTo(enableTransition);
+                }
+
+                @Override
+                public void exit() {
+                    mAlarmsScheduler.removeInexactAlarm(getId());
                 }
             }
 
@@ -726,6 +811,12 @@ public final class AlarmCore implements Alarm, Consumer<AlarmValue> {
                     case TIME_SET:
                         onTimeSet();
                         break;
+                    case INEXACT_FIRED:
+                        onSkipFired();
+                        break;
+                    case SKIP:
+                        onSkipped();
+                        break;
                     case DELETE:
                         onDelete();
                         break;
@@ -760,6 +851,14 @@ public final class AlarmCore implements Alarm, Consumer<AlarmValue> {
             }
 
             protected void onFired() {
+                markNotHandled();
+            }
+
+            protected void onSkipFired() {
+                markNotHandled();
+            }
+
+            protected void onSkipped() {
                 markNotHandled();
             }
 
@@ -802,6 +901,19 @@ public final class AlarmCore implements Alarm, Consumer<AlarmValue> {
 
     public void onAlarmFired(CalendarType calendarType) {
         stateMachine.sendMessage(AlarmStateMachine.FIRED);
+    }
+
+    public void onInexactAlarmFired() {
+        stateMachine.sendMessage(AlarmStateMachine.INEXACT_FIRED);
+    }
+
+    public void requestSkip() {
+        stateMachine.sendMessage(AlarmStateMachine.SKIP);
+    }
+
+    @Override
+    public boolean isSkipping() {
+        return container.getSkipping();
     }
 
     public void refresh() {
