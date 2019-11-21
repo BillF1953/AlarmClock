@@ -402,6 +402,7 @@ public final class AlarmCore implements Alarm, Consumer<AlarmValue> {
                     public void resume() {
                         Calendar nextTime = calculateNextTime();
                         setAlarm(nextTime, CalendarType.NORMAL);
+                        showSkipNotification(nextTime);
                     }
 
                     @Override
@@ -436,6 +437,7 @@ public final class AlarmCore implements Alarm, Consumer<AlarmValue> {
                         advanceCalendar(c);
                         if (c.after(calendars.now())) {
                             setAlarm(c, CalendarType.PREALARM);
+                            showSkipNotification(c);
                         } else {
                             // TODO this should never happen
                             log.e("PreAlarm is still in the past!");
@@ -454,14 +456,8 @@ public final class AlarmCore implements Alarm, Consumer<AlarmValue> {
                     }
                 }
 
-                @Override
-                public void enter() {
-                    updateListInStore();
-                }
-
-                @Override
-                public void resume() {
-                    Calendar calendar = calculateNextTime();
+                private void showSkipNotification(Calendar c) {
+                    Calendar calendar = (Calendar) c.clone();
                     calendar.add(Calendar.MINUTE, -120);
                     if (calendar.after(calendars.now())) {
                         mAlarmsScheduler.setInexactAlarm(getId(), calendar);
@@ -469,6 +465,11 @@ public final class AlarmCore implements Alarm, Consumer<AlarmValue> {
                         log.d("Alarm " + getId() + " is due in less than 2 hours - show notification");
                         broadcastAlarmState(Intents.ALARM_SHOW_SKIP);
                     }
+                }
+
+                @Override
+                public void enter() {
+                    updateListInStore();
                 }
 
                 @Override
@@ -540,6 +541,10 @@ public final class AlarmCore implements Alarm, Consumer<AlarmValue> {
                 @Override
                 public void exit() {
                     mAlarmsScheduler.removeInexactAlarm(getId());
+                    // avoids flicker of the icon
+                    if (getCurrentMessage().what() != SKIP) {
+                        removeAlarm();
+                    }
                 }
             }
 

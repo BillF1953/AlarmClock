@@ -108,6 +108,10 @@ class AlarmsListFragment : Fragment() {
                         }
             }
 
+            row.digitalClockContainer.setOnLongClickListener {
+                false
+            }
+
             // set the alarm text
             val c = Calendar.getInstance()
             c.set(Calendar.HOUR_OF_DAY, alarm.hour)

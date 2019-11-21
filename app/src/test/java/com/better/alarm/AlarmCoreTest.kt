@@ -34,7 +34,7 @@ class AlarmCoreTest {
     )
     private var prefs: Prefs = Prefs(
             _is24HoutFormat = Single.just(true),
-            preAlarmDuration = BehaviorSubject.createDefault(10),
+            preAlarmDuration = BehaviorSubject.createDefault(30),
             snoozeDuration = BehaviorSubject.createDefault(10),
             listRowLayout = BehaviorSubject.createDefault("bold"),
             autoSilence = BehaviorSubject.createDefault(10))
@@ -154,6 +154,35 @@ class AlarmCoreTest {
         }
 
         verify { stateNotifierMock.broadcastAlarmState(alarm.id, Intents.ALARM_REMOVE_SKIP) }
+    }
+
+    @Test
+    fun `skip notification must be removed if not used and pre alarm has actually fired`() {
+        val alarm = createAlarm()
+        act("Set on 01:30") {
+            alarm
+                    .edit()
+                    .withIsEnabled(true)
+                    .withDaysOfWeek(DaysOfWeek(0x7f))
+                    .with(hour = 1, minutes = 30)
+                    .withIsPrealarm(true)
+                    .commit()
+        }
+
+        verify { stateNotifierMock.broadcastAlarmState(alarm.id, Intents.ALARM_SHOW_SKIP) }
+
+        act("Current time changes to on 01:00 and prealarm is fired") {
+            currentHour = 1
+            alarm.onAlarmFired(CalendarType.PREALARM)
+        }
+
+        act("Dismiss") {
+            currentMinute++// otherwise the test will think that it is time for the alarm again
+            alarm.dismiss()
+        }
+
+        verify { stateNotifierMock.broadcastAlarmState(alarm.id, Intents.ALARM_REMOVE_SKIP) }
+        verify(exactly = 1) { stateNotifierMock.broadcastAlarmState(alarm.id, Intents.ALARM_SHOW_SKIP) }
     }
 
     @Test
@@ -303,5 +332,30 @@ class AlarmCoreTest {
         }
 
         assertThat(store.alarms().blockingFirst().first().skipping).isFalse()
+    }
+
+    @Test
+    fun `When skipping alarm is disabled it is completely cleaned up`() {
+        val alarm = createAlarm()
+        act("Set on 1:00") {
+            alarm
+                    .edit()
+                    .withDaysOfWeek(DaysOfWeek(0x7f))
+                    .withIsEnabled(true)
+                    .with(hour = 1)
+                    .commit()
+        }
+
+        verify { stateNotifierMock.broadcastAlarmState(alarm.id, Intents.ALARM_SHOW_SKIP) }
+        assertThat(alarmSetterMock.calendar).isNotNull()
+
+        act("Skip") {
+            alarm.requestSkip()
+        }
+        act("Disable") {
+            alarm.enable(false)
+        }
+
+        assertThat(alarmSetterMock.calendar).isNull()
     }
 }
