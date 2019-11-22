@@ -15,9 +15,7 @@
  */
 package com.better.alarm.configuration;
 
-import android.app.AlarmManager;
 import android.app.Application;
-import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.view.ViewConfiguration;
 
@@ -26,50 +24,30 @@ import com.better.alarm.OreoKt;
 import com.better.alarm.R;
 import com.better.alarm.alert.BackgroundNotifications;
 import com.better.alarm.background.AlertServicePusher;
-import com.better.alarm.background.Event;
-import com.better.alarm.logger.LogcatLogWriter;
 import com.better.alarm.logger.Logger;
+import com.better.alarm.logger.LoggerFactory;
 import com.better.alarm.logger.LoggingExceptionHandler;
 import com.better.alarm.logger.StartupLogWriter;
-import com.better.alarm.model.AlarmCore;
-import com.better.alarm.model.AlarmCoreFactory;
-import com.better.alarm.model.AlarmSetter;
-import com.better.alarm.model.AlarmStateNotifier;
 import com.better.alarm.model.AlarmValue;
 import com.better.alarm.model.Alarms;
 import com.better.alarm.model.AlarmsScheduler;
-import com.better.alarm.model.Calendars;
-import com.better.alarm.model.ImmediateHandlerFactory;
-import com.better.alarm.persistance.DatabaseQuery;
-import com.better.alarm.persistance.PersistingContainerFactory;
 import com.better.alarm.presenter.DynamicThemeHandler;
 import com.better.alarm.presenter.ScheduledReceiver;
 import com.better.alarm.presenter.ToastPresenter;
-import com.better.alarm.statemachine.HandlerFactory;
 import com.better.alarm.util.Optional;
-import com.f2prateek.rx.preferences2.RxSharedPreferences;
 
 import org.acra.ACRA;
 import org.acra.ErrorReporter;
 import org.acra.ExceptionHandlerInitializer;
 import org.acra.ReportField;
 import org.acra.annotation.ReportsCrashes;
+import org.koin.core.Koin;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
-import io.reactivex.Maybe;
-import io.reactivex.MaybeEmitter;
-import io.reactivex.MaybeOnSubscribe;
-import io.reactivex.Single;
 import io.reactivex.annotations.NonNull;
 import io.reactivex.functions.Consumer;
-import io.reactivex.functions.Function;
-import io.reactivex.subjects.BehaviorSubject;
-import io.reactivex.subjects.PublishSubject;
-import kotlin.jvm.functions.Function1;
 
 @ReportsCrashes(
         mailTo = BuildConfig.ACRA_EMAIL,
@@ -86,9 +64,7 @@ import kotlin.jvm.functions.Function1;
 public class AlarmApplication extends Application {
     private static Container sContainer;
     private static DynamicThemeHandler sThemeHandler;
-
     public static Optional<Boolean> is24hoursFormatOverride = Optional.absent();
-    private RxSharedPreferences rxPreferences;
 
     @Override
     public void onCreate() {
@@ -111,117 +87,40 @@ public class AlarmApplication extends Application {
             // Ignore
         }
 
-        final StartupLogWriter startupLogWriter = StartupLogWriter.create();
-        Function1<String, Logger> loggerFactory = Logger.factory(
-                LogcatLogWriter.create(),
-                startupLogWriter
-        );
+        final Koin koin = ContainerKt.createKoin(getApplicationContext(), is24hoursFormatOverride);
 
-        LoggingExceptionHandler.addLoggingExceptionHandlerToAllThreads(loggerFactory.invoke("default"));
-
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-        rxPreferences = RxSharedPreferences.create(preferences);
-
-        Function<String, Integer> parseInt = new Function<String, Integer>() {
-            @Override
-            public Integer apply(String s) throws Exception {
-                return Integer.parseInt(s);
-            }
-        };
-
-        final Single<Boolean> dateFormat = Maybe
-                .create(new MaybeOnSubscribe<Boolean>() {
-                    @Override
-                    public void subscribe(@NonNull MaybeEmitter<Boolean> e) throws Exception {
-                        if (is24hoursFormatOverride.isPresent()) {
-                            e.onSuccess(is24hoursFormatOverride.get());
-                        } else {
-                            e.onComplete();
-                        }
-                    }
-                })
-                .switchIfEmpty(Maybe.create(new MaybeOnSubscribe<Boolean>() {
-                    @Override
-                    public void subscribe(@NonNull MaybeEmitter<Boolean> e) throws Exception {
-                        e.onSuccess(android.text.format.DateFormat.is24HourFormat(getApplicationContext()));
-                    }
-                }))
-                .toSingle();
-
-        final Prefs prefs = new Prefs(dateFormat,
-                rxPreferences.getString("prealarm_duration", "30").asObservable().map(parseInt),
-                rxPreferences.getString("snooze_duration", "10").asObservable().map(parseInt),
-                rxPreferences.getString(Prefs.LIST_ROW_LAYOUT, Prefs.LIST_ROW_LAYOUT_COMPACT).asObservable(),
-                rxPreferences.getString("auto_silence", "10").asObservable().map(parseInt));
-
-        final Store store = new Store(
-                // alarmsSubject
-                BehaviorSubject.<List<AlarmValue>>createDefault(new ArrayList<AlarmValue>()),
-                // next
-                BehaviorSubject.createDefault(Optional.<Store.Next>absent()),
-                // sets
-                PublishSubject.<Store.AlarmSet>create(),
-                PublishSubject.<Event>create());
+        Logger logger = koin.getRootScope().<LoggerFactory>get(LoggerFactory.class).createLogger("default");
+        LoggingExceptionHandler.addLoggingExceptionHandlerToAllThreads(logger);
 
         if (!BuildConfig.ACRA_EMAIL.isEmpty()) {
             ACRA.getErrorReporter().setExceptionHandlerInitializer(new ExceptionHandlerInitializer() {
                 @Override
                 public void initializeExceptionHandler(ErrorReporter reporter) {
-                    reporter.putCustomData("STARTUP_LOG", startupLogWriter.getMessagesAsString());
+                    reporter.putCustomData("STARTUP_LOG", koin.getRootScope().<StartupLogWriter>get(StartupLogWriter.class).getMessagesAsString());
                 }
             });
         }
 
-        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
-        AlarmSetter.AlarmSetterImpl setter = new AlarmSetter.AlarmSetterImpl(loggerFactory.invoke("AlarmSetter"), alarmManager, getApplicationContext());
-        Calendars calendars = new Calendars() {
-            @Override
-            public Calendar now() {
-                return Calendar.getInstance();
-            }
-        };
-
-        AlarmsScheduler alarmsScheduler = new AlarmsScheduler(setter, loggerFactory.invoke("AlarmsScheduler"), store, prefs, calendars);
-        AlarmCore.IStateNotifier broadcaster = new AlarmStateNotifier(store);
-        HandlerFactory handlerFactory = new ImmediateHandlerFactory();
-        PersistingContainerFactory containerFactory = new PersistingContainerFactory(calendars, getApplicationContext());
-        Alarms alarms = new Alarms(alarmsScheduler, new DatabaseQuery(getContentResolver(), containerFactory), new AlarmCoreFactory(loggerFactory.invoke("AlarmCore"),
-                alarmsScheduler,
-                broadcaster,
-                handlerFactory,
-                prefs,
-                store,
-                calendars
-        ),
-                containerFactory,
-                loggerFactory.invoke("Alarms")
-        );
-
-        sContainer = new Container(
-                getApplicationContext(),
-                loggerFactory,
-                preferences,
-                rxPreferences,
-                prefs,
-                store,
-                alarms);
+        sContainer = koin.getRootScope().get(Container.class);
 
         // must be after sContainer
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
 
-        new ScheduledReceiver(store, getApplicationContext(), prefs, alarmManager).start();
-        new ToastPresenter(store, getApplicationContext()).start();
-        new AlertServicePusher(store, getApplicationContext());
-        new BackgroundNotifications();
+        koin.getRootScope().<ScheduledReceiver>get(ScheduledReceiver.class).start();
+        koin.getRootScope().<ToastPresenter>get(ToastPresenter.class).start();
+        koin.getRootScope().<AlertServicePusher>get(AlertServicePusher.class);
+        koin.getRootScope().<BackgroundNotifications>get(BackgroundNotifications.class);
 
         OreoKt.createNotificationChannels(this);
 
         // must be started the last, because otherwise we may loose intents from it.
-        final Logger alarmsLogger = loggerFactory.invoke("Alarms");
+        final Logger alarmsLogger = koin.getRootScope().<LoggerFactory>get(LoggerFactory.class).createLogger("Alarms");
         alarmsLogger.d("Starting alarms");
+        Alarms alarms = koin.getRootScope().get(Alarms.class);
         alarms.start();
         // start scheduling alarms after all alarms have been started
-        alarmsScheduler.start();
+        koin.getRootScope().<AlarmsScheduler>get(AlarmsScheduler.class).start();
+        Store store = koin.getRootScope().get(Store.class);
         // register logging after startup has finished to avoid logging( O(n) instead of O(n log n) )
         store.alarms()
                 .distinctUntilChanged()
