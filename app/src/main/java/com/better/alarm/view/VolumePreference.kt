@@ -33,7 +33,7 @@ import com.better.alarm.background.KlaxonPlugin
 import com.better.alarm.background.PlayerWrapper
 import com.better.alarm.background.PluginAlarmData
 import com.better.alarm.background.TargetVolume
-import com.better.alarm.configuration.AlarmApplication.container
+import com.better.alarm.configuration.AlarmApplication.Companion.container
 import com.better.alarm.configuration.Prefs.Companion.DEFAULT_PREALARM_VOLUME
 import com.better.alarm.configuration.Prefs.Companion.KEY_PREALARM_VOLUME
 import com.better.alarm.configuration.Prefs.Companion.MAX_PREALARM_VOLUME

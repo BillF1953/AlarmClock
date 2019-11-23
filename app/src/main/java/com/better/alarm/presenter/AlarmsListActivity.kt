@@ -29,8 +29,8 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.WindowManager
 import com.better.alarm.*
-import com.better.alarm.configuration.AlarmApplication.container
-import com.better.alarm.configuration.AlarmApplication.themeHandler
+import com.better.alarm.configuration.AlarmApplication.Companion.container
+import com.better.alarm.configuration.AlarmApplication.Companion.themeHandler
 import com.better.alarm.configuration.EditedAlarm
 import com.better.alarm.interfaces.IAlarmsManager
 import com.better.alarm.model.AlarmData

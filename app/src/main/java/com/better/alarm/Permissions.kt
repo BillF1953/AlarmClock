@@ -7,7 +7,7 @@ import android.content.pm.PackageManager
 import android.media.RingtoneManager
 import android.os.Build
 import com.better.alarm.background.PlayerWrapper
-import com.better.alarm.configuration.AlarmApplication.container
+import com.better.alarm.configuration.AlarmApplication.Companion.container
 import com.better.alarm.model.Alarmtone
 
 /**

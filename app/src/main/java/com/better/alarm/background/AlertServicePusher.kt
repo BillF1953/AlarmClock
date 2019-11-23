@@ -2,7 +2,7 @@ package com.better.alarm.background
 
 import android.content.Context
 import android.content.Intent
-import com.better.alarm.configuration.AlarmApplication.container
+import com.better.alarm.configuration.AlarmApplication.Companion.container
 import com.better.alarm.configuration.Store
 import com.better.alarm.interfaces.Intents
 import com.better.alarm.oreo

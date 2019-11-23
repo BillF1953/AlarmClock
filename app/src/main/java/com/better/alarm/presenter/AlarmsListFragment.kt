@@ -12,7 +12,7 @@ import android.widget.AdapterView.AdapterContextMenuInfo
 import android.widget.ArrayAdapter
 import android.widget.ListView
 import com.better.alarm.R
-import com.better.alarm.configuration.AlarmApplication.container
+import com.better.alarm.configuration.AlarmApplication.Companion.container
 import com.better.alarm.configuration.Layout
 import com.better.alarm.configuration.Prefs
 import com.better.alarm.lollipop

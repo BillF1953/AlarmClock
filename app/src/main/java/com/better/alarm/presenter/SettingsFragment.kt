@@ -10,7 +10,7 @@ import android.preference.*
 import android.provider.Settings
 import com.better.alarm.R
 import com.better.alarm.checkPermissions
-import com.better.alarm.configuration.AlarmApplication.container
+import com.better.alarm.configuration.AlarmApplication.Companion.container
 import com.better.alarm.configuration.Prefs
 import com.better.alarm.lollipop
 import com.better.alarm.model.Alarmtone

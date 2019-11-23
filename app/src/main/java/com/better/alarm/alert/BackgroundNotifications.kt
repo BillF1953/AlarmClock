@@ -26,7 +26,7 @@ import android.text.format.DateFormat
 import com.better.alarm.CHANNEL_ID
 import com.better.alarm.R
 import com.better.alarm.background.Event
-import com.better.alarm.configuration.AlarmApplication.container
+import com.better.alarm.configuration.AlarmApplication.Companion.container
 import com.better.alarm.interfaces.Alarm
 import com.better.alarm.interfaces.Intents
 import com.better.alarm.interfaces.PresentationToModelIntents

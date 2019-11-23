@@ -1,7 +1,7 @@
 package com.better.alarm.presenter
 
 import android.support.v4.app.FragmentActivity
-import com.better.alarm.configuration.AlarmApplication.container
+import com.better.alarm.configuration.AlarmApplication.Companion.container
 import com.better.alarm.interfaces.Intents
 import io.reactivex.disposables.Disposables
 

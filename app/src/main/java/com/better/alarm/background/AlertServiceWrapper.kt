@@ -4,7 +4,7 @@ import android.content.Intent
 import android.telephony.PhoneStateListener
 import android.telephony.TelephonyManager
 import com.better.alarm.*
-import com.better.alarm.configuration.AlarmApplication.container
+import com.better.alarm.configuration.AlarmApplication.Companion.container
 import com.better.alarm.configuration.Prefs
 import com.better.alarm.interfaces.Intents
 import com.better.alarm.util.Service

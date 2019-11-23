@@ -35,7 +35,7 @@ import android.view.ViewGroup
 import android.widget.*
 import com.better.alarm.R
 import com.better.alarm.checkPermissions
-import com.better.alarm.configuration.AlarmApplication.container
+import com.better.alarm.configuration.AlarmApplication.Companion.container
 import com.better.alarm.configuration.Layout
 import com.better.alarm.configuration.Prefs
 import com.better.alarm.interfaces.IAlarmsManager
