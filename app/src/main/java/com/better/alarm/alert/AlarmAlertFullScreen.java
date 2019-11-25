@@ -40,6 +40,8 @@ import com.better.alarm.presenter.PickedTime;
 import com.better.alarm.presenter.TimePickerDialogFragment;
 import com.better.alarm.util.Optional;
 
+import org.koin.core.Koin;
+
 import io.reactivex.annotations.NonNull;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.disposables.Disposables;

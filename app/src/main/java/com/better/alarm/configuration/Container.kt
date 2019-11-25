@@ -11,6 +11,7 @@ import android.preference.PreferenceManager
 import android.telephony.TelephonyManager
 import com.better.alarm.alert.BackgroundNotifications
 import com.better.alarm.background.AlertServicePusher
+import com.better.alarm.background.AlertServiceWrapper
 import com.better.alarm.interfaces.IAlarmsManager
 import com.better.alarm.logger.LogcatLogWriter
 import com.better.alarm.logger.Logger
@@ -19,19 +20,23 @@ import com.better.alarm.logger.StartupLogWriter
 import com.better.alarm.model.*
 import com.better.alarm.persistance.DatabaseQuery
 import com.better.alarm.persistance.PersistingContainerFactory
+import com.better.alarm.presenter.DynamicThemeHandler
 import com.better.alarm.presenter.ScheduledReceiver
 import com.better.alarm.presenter.ToastPresenter
 import com.better.alarm.statemachine.HandlerFactory
 import com.better.alarm.util.Optional
 import com.better.alarm.wakelock.WakeLockManager
+import com.better.alarm.wakelock.Wakelocks
 import com.f2prateek.rx.preferences2.RxSharedPreferences
+import io.reactivex.Scheduler
 import io.reactivex.Single
+import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.PublishSubject
 import org.koin.core.Koin
+import org.koin.core.context.startKoin
 import org.koin.core.qualifier.named
 import org.koin.core.scope.Scope
-import org.koin.dsl.koinApplication
 import org.koin.dsl.module
 import java.util.ArrayList
 import java.util.Calendar
@@ -40,12 +45,13 @@ fun Scope.logger(tag: String): Logger {
     return get<LoggerFactory>().createLogger(tag)
 }
 
-fun createKoin(context: Context,
-               is24hoursFormatOverride: Optional<Boolean>
+fun startKoin(context: Context,
+              is24hoursFormatOverride: Optional<Boolean>
 ): Koin {
     // The following line triggers the initialization of ACRA
 
     val module = module {
+        single<DynamicThemeHandler> { DynamicThemeHandler(get()) }
         single<StartupLogWriter> { StartupLogWriter.create() }
         single<LoggerFactory> {
             Logger.factory(
@@ -93,22 +99,33 @@ fun createKoin(context: Context,
         single<DatabaseQuery> { DatabaseQuery(get(), get()) }
         single<AlarmCoreFactory> { AlarmCoreFactory(logger("AlarmCore"), get(), get(), get(), get(), get(), get()) }
         single<Alarms> { Alarms(get(), get(), get(), get(), logger("Alarms")) }
+        factory<IAlarmsManager> { get<Alarms>() }
         single<Container> { Container(get(), get(), get(), get(), get(), get(), get()) }
         single { ScheduledReceiver(get(), get(), get(), get()) }
         single { ToastPresenter(get(), get()) }
-        single { AlertServicePusher(get(), get()) }
-        single { BackgroundNotifications() }
-
+        single { AlertServicePusher(get(), get(), get(), logger("AlertServicePusher")) }
+        single { BackgroundNotifications(get(), get(), get(), get(), get()) }
+        factory<Wakelocks> { get<WakeLockManager>() }
+        factory<Scheduler> { AndroidSchedulers.mainThread() }
+        single<WakeLockManager> { WakeLockManager(logger("WakeLockManager"), get()) }
+        factory { get<Context>().getSystemService(Context.VIBRATOR_SERVICE) as Vibrator }
+        factory { get<Context>().getSystemService(Context.POWER_SERVICE) as PowerManager }
+        factory { get<Context>().getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager }
+        factory { get<Context>().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager }
+        factory { get<Context>().getSystemService(Context.AUDIO_SERVICE) as AudioManager }
+        factory { get<Context>().resources }
     }
 
-    return koinApplication {
+    return startKoin {
         modules(module)
+        modules(AlertServiceWrapper.module())
     }.koin
 }
 
 /**
  * Created by Yuriy on 09.08.2017.
  */
+@Deprecated("use koin")
 data class Container(
         val context: Context,
         val loggerFactory: LoggerFactory,

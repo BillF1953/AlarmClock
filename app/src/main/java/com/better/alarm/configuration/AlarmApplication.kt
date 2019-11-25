@@ -62,7 +62,7 @@ class AlarmApplication : Application() {
                     .setBoolean(ViewConfiguration.get(this), false)
         }
 
-        val koin = createKoin(applicationContext, is24hoursFormatOverride)
+        val koin = startKoin(applicationContext, is24hoursFormatOverride)
 
         LoggingExceptionHandler.addLoggingExceptionHandlerToAllThreads(koin.rootScope.logger("default"))
 
@@ -70,8 +70,8 @@ class AlarmApplication : Application() {
             ACRA.getErrorReporter().setExceptionHandlerInitializer { reporter -> reporter.putCustomData("STARTUP_LOG", koin.rootScope.get<StartupLogWriter>(StartupLogWriter::class.java).getMessagesAsString()) }
         }
 
-        sThemeHandler = DynamicThemeHandler(this)
-        sContainer = koin.rootScope.get(Container::class.java)
+        sThemeHandler =  koin.rootScope.get()
+        sContainer = koin.rootScope.get()
 
         // must be after sContainer
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
@@ -114,11 +114,13 @@ class AlarmApplication : Application() {
         private lateinit var sThemeHandler: DynamicThemeHandler
         var is24hoursFormatOverride = Optional.absent<Boolean>()
 
+        @Deprecated("use koin")
         @JvmStatic
         fun container(): Container {
             return sContainer
         }
 
+        @Deprecated("use koin")
         @JvmStatic
         fun themeHandler(): DynamicThemeHandler {
             return sThemeHandler
