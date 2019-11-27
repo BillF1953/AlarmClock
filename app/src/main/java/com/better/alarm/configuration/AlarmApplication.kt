@@ -61,7 +61,7 @@ class AlarmApplication : Application() {
                     .setBoolean(ViewConfiguration.get(this), false)
         }
 
-        val koin = startKoin(applicationContext, is24hoursFormatOverride)
+        val koin = startKoin(applicationContext)
 
         LoggingExceptionHandler.addLoggingExceptionHandlerToAllThreads(koin.rootScope.logger("default"))
 
@@ -103,9 +103,5 @@ class AlarmApplication : Application() {
         }
 
         super.onCreate()
-    }
-
-    companion object {
-        var is24hoursFormatOverride = Optional.absent<Boolean>()
     }
 }

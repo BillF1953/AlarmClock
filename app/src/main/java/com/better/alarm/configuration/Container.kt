@@ -34,6 +34,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.PublishSubject
 import org.koin.core.Koin
+import org.koin.core.context.loadKoinModules
 import org.koin.core.context.startKoin
 import org.koin.core.qualifier.named
 import org.koin.core.scope.Scope
@@ -45,10 +46,7 @@ fun Scope.logger(tag: String): Logger {
     return get<LoggerFactory>().createLogger(tag)
 }
 
-fun startKoin(context: Context,
-              // TODO use koin for this
-              is24hoursFormatOverride: Optional<Boolean>
-): Koin {
+fun startKoin(context: Context): Koin {
     // The following line triggers the initialization of ACRA
 
     val module = module {
@@ -66,8 +64,7 @@ fun startKoin(context: Context,
         single<RxSharedPreferences> { RxSharedPreferences.create(get()) }
         factory<Single<Boolean>>(named("dateFormat")) {
             Single.fromCallable {
-                is24hoursFormatOverride.getOrNull()
-                        ?: android.text.format.DateFormat.is24HourFormat(get())
+                android.text.format.DateFormat.is24HourFormat(context)
             }
         }
 
@@ -120,4 +117,10 @@ fun startKoin(context: Context,
         modules(module)
         modules(AlertServiceWrapper.module())
     }.koin
+}
+
+fun overrideIs24hoursFormatOverride(is24hours: Boolean) {
+    loadKoinModules(module = module {
+        factory(named("dateFormat")) { Single.just(is24hours) }
+    })
 }
