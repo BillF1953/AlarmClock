@@ -29,7 +29,6 @@ import com.better.alarm.model.Alarms
 import com.better.alarm.model.AlarmsScheduler
 import com.better.alarm.presenter.ScheduledReceiver
 import com.better.alarm.presenter.ToastPresenter
-import com.better.alarm.util.Optional
 import org.acra.ACRA
 import org.acra.ReportField
 import org.acra.annotation.ReportsCrashes
@@ -66,12 +65,15 @@ class AlarmApplication : Application() {
         LoggingExceptionHandler.addLoggingExceptionHandlerToAllThreads(koin.rootScope.logger("default"))
 
         if (BuildConfig.ACRA_EMAIL.isNotEmpty()) {
-            ACRA.getErrorReporter().setExceptionHandlerInitializer { reporter -> reporter.putCustomData("STARTUP_LOG", koin.rootScope.get<StartupLogWriter>(StartupLogWriter::class.java).getMessagesAsString()) }
+            ACRA.getErrorReporter().setExceptionHandlerInitializer { reporter ->
+                reporter.putCustomData("STARTUP_LOG", koin.rootScope.get<StartupLogWriter>().getMessagesAsString())
+            }
         }
 
         // must be after sContainer
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
 
+        // TODO make it lazy
         koin.rootScope.get<ScheduledReceiver>().start()
         koin.rootScope.get<ToastPresenter>().start()
         koin.rootScope.get<AlertServicePusher>()

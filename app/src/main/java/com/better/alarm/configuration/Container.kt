@@ -60,11 +60,13 @@ fun startKoin(context: Context): Koin {
         }
 
         factory<Context> { context }
+        factory(named("dateFormatOverride")) { "none" }
         factory<SharedPreferences> { PreferenceManager.getDefaultSharedPreferences(get()) }
         single<RxSharedPreferences> { RxSharedPreferences.create(get()) }
         factory<Single<Boolean>>(named("dateFormat")) {
             Single.fromCallable {
-                android.text.format.DateFormat.is24HourFormat(context)
+                get<String>(named("dateFormatOverride")).let { if (it == "none") null else it.toBoolean() }
+                        ?: android.text.format.DateFormat.is24HourFormat(context)
             }
         }
 
@@ -120,7 +122,7 @@ fun startKoin(context: Context): Koin {
 }
 
 fun overrideIs24hoursFormatOverride(is24hours: Boolean) {
-    loadKoinModules(module = module {
-        factory(named("dateFormat")) { Single.just(is24hours) }
+    loadKoinModules(module = module(override = true) {
+        factory(named("dateFormatOverride")) { is24hours.toString() }
     })
 }
