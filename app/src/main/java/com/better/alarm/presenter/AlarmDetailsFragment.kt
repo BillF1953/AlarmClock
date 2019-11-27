@@ -35,9 +35,10 @@ import android.view.ViewGroup
 import android.widget.*
 import com.better.alarm.R
 import com.better.alarm.checkPermissions
-import com.better.alarm.configuration.AlarmApplication.Companion.container
 import com.better.alarm.configuration.Layout
 import com.better.alarm.configuration.Prefs
+import com.better.alarm.configuration.globalInject
+import com.better.alarm.configuration.globalLogger
 import com.better.alarm.interfaces.IAlarmsManager
 import com.better.alarm.logger.Logger
 import com.better.alarm.lollipop
@@ -51,16 +52,16 @@ import io.reactivex.Observable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
 import io.reactivex.disposables.Disposables
-import java.util.*
+import java.util.Calendar
 
 /**
  * Details activity allowing for fine-grained alarm modification
  */
 class AlarmDetailsFragment : Fragment() {
-    private val alarms: IAlarmsManager = container().alarms()
-    private val logger: Logger = container().logger()
-    private val rxSharedPreferences: RxSharedPreferences = container().rxPrefs()
-    private val prefs: Prefs = container().prefs()
+    private val alarms: IAlarmsManager by globalInject()
+    private val logger: Logger by globalLogger("AlarmDetailsFragment")
+    private val rxSharedPreferences: RxSharedPreferences by globalInject()
+    private val prefs: Prefs by globalInject()
     private var disposables = CompositeDisposable()
 
     private var backButtonSub: Disposable = Disposables.disposed()

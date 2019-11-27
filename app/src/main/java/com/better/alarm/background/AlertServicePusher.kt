@@ -2,7 +2,6 @@ package com.better.alarm.background
 
 import android.content.Context
 import android.content.Intent
-import com.better.alarm.configuration.AlarmApplication.Companion.container
 import com.better.alarm.configuration.Store
 import com.better.alarm.interfaces.Intents
 import com.better.alarm.logger.Logger
@@ -10,7 +9,6 @@ import com.better.alarm.oreo
 import com.better.alarm.preOreo
 import com.better.alarm.util.mapNotNull
 import com.better.alarm.wakelock.WakeLockManager
-import com.better.alarm.wakelock.Wakelocks
 
 class AlertServicePusher(store: Store, context: Context, wm: WakeLockManager, logger: Logger) {
     init {

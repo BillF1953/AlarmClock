@@ -46,6 +46,7 @@ fun Scope.logger(tag: String): Logger {
 }
 
 fun startKoin(context: Context,
+              // TODO use koin for this
               is24hoursFormatOverride: Optional<Boolean>
 ): Koin {
     // The following line triggers the initialization of ACRA
@@ -100,7 +101,6 @@ fun startKoin(context: Context,
         single<AlarmCoreFactory> { AlarmCoreFactory(logger("AlarmCore"), get(), get(), get(), get(), get(), get()) }
         single<Alarms> { Alarms(get(), get(), get(), get(), logger("Alarms")) }
         factory<IAlarmsManager> { get<Alarms>() }
-        single<Container> { Container(get(), get(), get(), get(), get(), get(), get()) }
         single { ScheduledReceiver(get(), get(), get(), get()) }
         single { ToastPresenter(get(), get()) }
         single { AlertServicePusher(get(), get(), get(), logger("AlertServicePusher")) }
@@ -120,67 +120,4 @@ fun startKoin(context: Context,
         modules(module)
         modules(AlertServiceWrapper.module())
     }.koin
-}
-
-/**
- * Created by Yuriy on 09.08.2017.
- */
-@Deprecated("use koin")
-data class Container(
-        val context: Context,
-        val loggerFactory: LoggerFactory,
-        val sharedPreferences: SharedPreferences,
-        val rxPrefs: RxSharedPreferences,
-        val prefs: Prefs,
-        val store: Store,
-        val rawAlarms: Alarms) {
-    private val wlm: WakeLockManager = WakeLockManager(logger(), powerManager())
-
-    fun context(): Context = context
-
-    @Deprecated("Use the factory or createLogger", ReplaceWith("createLogger(\"TODO\")"))
-    fun logger(): Logger = loggerFactory.createLogger("default")
-
-    @Deprecated("Use the factory or createLogger", ReplaceWith("createLogger(\"TODO\")"))
-    val logger: Logger = loggerFactory.createLogger("default")
-
-    fun createLogger(tag: String) = loggerFactory.createLogger(tag)
-
-    fun sharedPreferences(): SharedPreferences = sharedPreferences
-
-    fun rxPrefs(): RxSharedPreferences = rxPrefs
-
-    fun prefs(): Prefs = prefs
-
-    fun store(): Store = store
-
-    fun rawAlarms(): Alarms = rawAlarms
-
-    fun alarms(): IAlarmsManager {
-        return rawAlarms()
-    }
-
-    fun wakeLocks(): WakeLockManager {
-        return wlm
-    }
-
-    fun vibrator(): Vibrator {
-        return context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-    }
-
-    private fun powerManager(): PowerManager {
-        return context.getSystemService(Context.POWER_SERVICE) as PowerManager
-    }
-
-    fun telephonyManager(): TelephonyManager {
-        return context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-    }
-
-    fun notificationManager(): NotificationManager {
-        return context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    }
-
-    fun audioManager(): AudioManager {
-        return context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-    }
 }

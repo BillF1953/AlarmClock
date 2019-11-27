@@ -27,7 +27,6 @@ import com.better.alarm.logger.LoggingExceptionHandler
 import com.better.alarm.logger.StartupLogWriter
 import com.better.alarm.model.Alarms
 import com.better.alarm.model.AlarmsScheduler
-import com.better.alarm.presenter.DynamicThemeHandler
 import com.better.alarm.presenter.ScheduledReceiver
 import com.better.alarm.presenter.ToastPresenter
 import com.better.alarm.util.Optional
@@ -70,9 +69,6 @@ class AlarmApplication : Application() {
             ACRA.getErrorReporter().setExceptionHandlerInitializer { reporter -> reporter.putCustomData("STARTUP_LOG", koin.rootScope.get<StartupLogWriter>(StartupLogWriter::class.java).getMessagesAsString()) }
         }
 
-        sThemeHandler =  koin.rootScope.get()
-        sContainer = koin.rootScope.get()
-
         // must be after sContainer
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
 
@@ -110,20 +106,6 @@ class AlarmApplication : Application() {
     }
 
     companion object {
-        private lateinit var sContainer: Container
-        private lateinit var sThemeHandler: DynamicThemeHandler
         var is24hoursFormatOverride = Optional.absent<Boolean>()
-
-        @Deprecated("use koin")
-        @JvmStatic
-        fun container(): Container {
-            return sContainer
-        }
-
-        @Deprecated("use koin")
-        @JvmStatic
-        fun themeHandler(): DynamicThemeHandler {
-            return sThemeHandler
-        }
     }
 }

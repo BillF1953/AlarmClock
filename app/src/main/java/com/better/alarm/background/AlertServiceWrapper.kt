@@ -7,18 +7,16 @@ import com.better.alarm.CHANNEL_ID
 import com.better.alarm.R
 import com.better.alarm.configuration.Prefs
 import com.better.alarm.configuration.globalInject
+import com.better.alarm.configuration.globalLogger
 import com.better.alarm.configuration.logger
 import com.better.alarm.interfaces.Intents
 import com.better.alarm.logger.Logger
-import com.better.alarm.logger.LoggerFactory
 import com.better.alarm.notificationBuilder
 import com.better.alarm.oreo
 import com.better.alarm.util.Service
 import com.better.alarm.wakelock.WakeLockManager
 import com.f2prateek.rx.preferences2.RxSharedPreferences
 import io.reactivex.Observable
-import io.reactivex.android.schedulers.AndroidSchedulers
-import org.koin.core.context.GlobalContext
 import org.koin.core.module.Module
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -73,19 +71,33 @@ class AlertServiceWrapper : Service() {
                         prealarmVolume = get<RxSharedPreferences>().getInteger(Prefs.KEY_PREALARM_VOLUME, Prefs.DEFAULT_PREALARM_VOLUME).asObservable(),
                         fadeInTimeInMillis = get(named("fadeInTimeInMillis")),
                         inCall = get(named("inCall")),
-                        scheduler = AndroidSchedulers.mainThread()
+                        scheduler = get()
                 )
             }
 
-            factory {
+            factory(named("volumePreferenceDemo")) {
+                KlaxonPlugin(
+                        log = logger("VolumePreference"),
+                        playerFactory = { PlayerWrapper(get(), get(), logger("VolumePreference")) },
+                        prealarmVolume = get<RxSharedPreferences>().getInteger(Prefs.KEY_PREALARM_VOLUME, Prefs.DEFAULT_PREALARM_VOLUME).asObservable(),
+                        fadeInTimeInMillis = Observable.just(100),
+                        inCall = Observable.just(false),
+                        scheduler = get()
+                )
+            }
+
+            factory { params ->
                 VibrationPlugin(
                         log = logger("AlertService"),
                         vibrator = get(),
                         //TODO move to container
-                        fadeInTimeInMillis = get<RxSharedPreferences>()
-                                .getString(Prefs.KEY_FADE_IN_TIME_SEC, "30")
-                                .asObservable()
-                                .map { s -> Integer.parseInt(s) * 1000 },
+                        fadeInTimeInMillis = when {
+                            params.isEmpty() -> get<RxSharedPreferences>()
+                                    .getString(Prefs.KEY_FADE_IN_TIME_SEC, "30")
+                                    .asObservable()
+                                    .map { s -> Integer.parseInt(s) * 1000 }
+                            else -> Observable.just(params[0])
+                        },
                         scheduler = get(),
                         vibratePreference = get<RxSharedPreferences>().getBoolean("vibrate").asObservable()
                 )
@@ -96,10 +108,10 @@ class AlertServiceWrapper : Service() {
             factory<NotificationsPluginFactory>(named("NotificationsPluginFactory")) {
                 { service: Service ->
                     NotificationsPlugin(
+                            logger = logger("AlertService"),
                             mContext = get(),
                             nm = get(),
-                            startForeground = { id, notification -> service.startForeground(id, notification) },
-                            prefs = get()
+                            startForeground = { id, notification -> service.startForeground(id, notification) }
                     )
                 }
             }
@@ -141,7 +153,7 @@ class AlertServiceWrapper : Service() {
 
     private lateinit var alertService: AlertService
     private val tm: TelephonyManager by globalInject()
-    private val log: Logger by lazy { GlobalContext.get().koin.rootScope.get<LoggerFactory>().createLogger("AlertService") }
+    private val log: Logger by globalLogger("AlertService")
     private val prefs: RxSharedPreferences by globalInject()
     private val wakelocks: WakeLockManager by globalInject()
 
