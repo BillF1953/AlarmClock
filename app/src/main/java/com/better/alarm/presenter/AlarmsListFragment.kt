@@ -34,7 +34,7 @@ import java.util.Calendar
 class AlarmsListFragment : Fragment() {
     private val alarms: IAlarmsManager by globalInject()
     private val store: Store by globalInject()
-    private val uiStore: UiStore by lazy { AlarmsListActivity.uiStore(activity as AlarmsListActivity, alarms) }
+    private val uiStore: UiStore by globalInject()
     private val prefs: Prefs by globalInject()
     private val logger: Logger by globalLogger("AlarmsListFragment")
 

@@ -45,6 +45,8 @@ import io.reactivex.functions.Consumer
 import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
+import org.koin.core.module.Module
+import org.koin.dsl.module
 
 /**
  * This activity displays a list of alarms and optionally a details fragment.
@@ -59,17 +61,12 @@ class AlarmsListActivity : FragmentActivity() {
 
     private var sub = Disposables.disposed()
 
-    private lateinit var uiStore: UiStore
+    private val uiStore: UiStore by globalInject()
     private val dynamicThemeHandler: DynamicThemeHandler by globalInject()
 
     companion object {
-        fun uiStore(activity: AlarmsListActivity, alarms: IAlarmsManager): UiStore {
-            return if (activity::uiStore.isInitialized) {
-                activity.uiStore
-            } else {
-                globalLogger("AlarmsListActivity").value.e("AlarmsListActivity.uiStore is not initialized!")
-                createStore(EditedAlarm(), alarms)
-            }
+        val uiStoreModule: Module = module {
+            single<UiStore> { createStore(EditedAlarm(), get()) }
         }
 
         private fun createStore(edited: EditedAlarm, alarms: IAlarmsManager): UiStore {
@@ -153,16 +150,15 @@ class AlarmsListActivity : FragmentActivity() {
         setTheme(dynamicThemeHandler.getIdForName(AlarmsListActivity::class.java.name))
         super.onCreate(savedInstanceState)
 
-        uiStore = when {
+        when {
             savedInstanceState != null && savedInstanceState.getInt("version", BuildConfig.VERSION_CODE) == BuildConfig.VERSION_CODE -> {
                 val restored = editedAlarmFromSavedInstanceState(savedInstanceState)
                 logger.d("Restored ${this@AlarmsListActivity} with $restored")
-                createStore(restored, alarms)
+                uiStore.editing().onNext(restored)
             }
             else -> {
                 val initialState = EditedAlarm()
                 logger.d("Created ${this@AlarmsListActivity} with $initialState")
-                createStore(initialState, alarms)
             }
             // if (intent != null && intent.hasExtra(Intents.EXTRA_ID)) {
             //     //jump directly to editor

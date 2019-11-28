@@ -45,6 +45,7 @@ import com.better.alarm.lollipop
 import com.better.alarm.model.AlarmData
 import com.better.alarm.model.Alarmtone
 import com.better.alarm.util.Optional
+import com.better.alarm.util.modify
 import com.better.alarm.view.showDialog
 import com.better.alarm.view.summary
 import com.f2prateek.rx.preferences2.RxSharedPreferences
@@ -70,7 +71,7 @@ class AlarmDetailsFragment : Fragment() {
     private var disposableDialog = Disposables.disposed()
 
     private val alarmsListActivity by lazy { activity as AlarmsListActivity }
-    private val store: UiStore by lazy { AlarmsListActivity.uiStore(alarmsListActivity, alarms) }
+    private val store: UiStore by globalInject()
     private val mLabel: EditText by lazy { fragmentView.findViewById(R.id.details_label) as EditText }
     private val rowHolder: RowHolder by lazy { RowHolder(fragmentView.findViewById(R.id.details_list_row_container), alarmId, prefs.layout()) }
     private val mRingtoneRow by lazy { fragmentView.findViewById(R.id.details_ringtone_row) as LinearLayout }
@@ -321,12 +322,8 @@ class AlarmDetailsFragment : Fragment() {
 
     private fun modify(reason: String, function: (AlarmData) -> AlarmData) {
         logger.d("Performing modification because of $reason")
-        store.editing().value?.let { editedAlarm ->
-            val modified: Optional<AlarmData> = editedAlarm.value.of
-                    ?.let(function)
-                    .let { Optional.fromNullable(it) }
-
-            store.editing().onNext(editedAlarm.copy(value = modified))
+        store.editing().modify {
+            copy(value = value.map { function(it) })
         }
     }
 

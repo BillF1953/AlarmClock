@@ -20,6 +20,7 @@ import com.better.alarm.logger.StartupLogWriter
 import com.better.alarm.model.*
 import com.better.alarm.persistance.DatabaseQuery
 import com.better.alarm.persistance.PersistingContainerFactory
+import com.better.alarm.presenter.AlarmsListActivity
 import com.better.alarm.presenter.DynamicThemeHandler
 import com.better.alarm.presenter.ScheduledReceiver
 import com.better.alarm.presenter.ToastPresenter
@@ -118,6 +119,7 @@ fun startKoin(context: Context): Koin {
     return startKoin {
         modules(module)
         modules(AlertServiceWrapper.module())
+        modules(AlarmsListActivity.uiStoreModule)
     }.koin
 }
 
